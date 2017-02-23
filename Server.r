@@ -1,6 +1,8 @@
 library(shiny)
-library(ggplot2)
 library(forecast)
+library(tseries)
+
+#library(forecast)
 function(input, output, session) {
   # added "session" because updateSelectInput requires it
   
@@ -21,7 +23,6 @@ function(input, output, session) {
     updateSelectInput(session, inputId = 'ycol', label = 'Y Variable',
                       choices = names(df), selected = names(df)[2])
     
-
     return(df)
   })
   
@@ -48,36 +49,38 @@ function(input, output, session) {
       },
       contentType = "image/png"
     )#end download plot handler
-###########################################################
+    
+####################chossing the model
+    ###########################################################
     #######################################################
     #######################################################
     ##applying model
     modeldata <- reactive({ 
-      req(input$file1) ## ?req #  require that the input is available
-      
-      inFile <- input$file1 
-      
-      df <- read.csv(inFile$datapath, header = TRUE, sep = input$sep)
-      
-      
+      x <- data()
+      mydata<-ts(x[,input$ycol])
       #choose between ANN, ARIMA
       if(input$model =="ARIMA"){
         #do ARIMA 
-      } else {
+      
+        results <- auto.arima(mydata)
+        
+      #  create a time series from data
+     #   mydata<-ts(data()[,2],frequency= input$freq)
+      #  results <- auto.arima(mydata, frequency= input$freq)
+        
+      } else if (input$model =="ANN") {
         #do ANN
+        results <- nnetar(mydata)
       }#end if  
       
       
-      mydata<-ts(df[,2],start = c(2007,1,1),frequency = 12)
-      y <- auto.arima(mydata)
-    #  modelSummery <- summary(y)
-      return(y)
+      #  modelSummery <- summary(y)
+      return(results)
     })
     
     #presenting output###########################################
     output$modelData <- renderPrint({
       modeldata()  
-      input$freq
     })
     ######################################################
     # I Since you have two inputs I decided to make a scatterplot
@@ -86,5 +89,7 @@ function(input, output, session) {
       plot(x)
       
     })
+    
+
     
 }
