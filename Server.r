@@ -19,7 +19,7 @@ function(input, output, session) {
     # It depends on what do you want to do later on.
     
     updateSelectInput(session, inputId = 'xcol', label = 'X Variable',
-                      choices = names(df), selected = names(df))
+                      choices = names(df), selected = names(df)[1])
     updateSelectInput(session, inputId = 'ycol', label = 'Y Variable',
                       choices = names(df), selected = names(df)[2])
     
@@ -56,8 +56,11 @@ function(input, output, session) {
     #######################################################
     ##applying model
     modeldata <- reactive({ 
-      x <- data()
-      mydata<-ts(x[,input$ycol])
+
+      # Converting frequecny from character into int.
+      #mydata<-ts(x[,input$ycol],frequency= as.numeric(input$freq))
+      
+      mydata<-ts(data()[,input$ycol])
       #choose between ANN, ARIMA
       if(input$model =="ARIMA"){
         #do ARIMA 
@@ -70,7 +73,7 @@ function(input, output, session) {
         
       } else if (input$model =="ANN") {
         #do ANN
-        results <- nnetar(mydata)
+       # results <- nnetar(mydata,frequency= as.numeric(input$freq))
       }#end if  
       
       
@@ -80,16 +83,38 @@ function(input, output, session) {
     
     #presenting output###########################################
     output$modelData <- renderPrint({
-      modeldata()  
+  
+        modeldata()  
+      
+      summary(modeldata())
+      
     })
     ######################################################
-    # I Since you have two inputs I decided to make a scatterplot
     output$forecastPlot <- renderPlot({
       x <- modeldata()[, c(input$xcol, input$ycol)]
       plot(x)
       
     })
     
-
+############################################################
+    ##############Reiduals 
+    output$residualsTables <- renderTable({
+      residuals(modeldata())
+    # accuracy(fit12, mydata)
+    # add accuracy section
+      })
+    
+    output$residualsPlot <- renderPlot({
+      plot(ts(data()[,input$ycol]),xlab= input$xcol,ylab=input$ycol)
+     lines(fitted(modeldata()), col="red")
+     legend("topleft", lty=1,col=c(4,2),
+            legend=c("Real Data","fitted Data"))
+     
+ #    plot(residuals(modeldata()), col="red"))
+      
+    })
+    
+    
+    
     
 }
