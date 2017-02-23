@@ -29,8 +29,8 @@ ui <- shinyUI(fluidPage(
                sidebarPanel(
                  
                  # "Empty inputs" - they will be updated after the data is uploaded
-                 selectInput('xcol', 'X axis', ""),
-                 selectInput('ycol', 'Y axis', "", selected = ""),
+                 selectInput('xcol', 'X axis', "",selected = 1),
+                 selectInput('ycol', 'Y axis', "", selected = 1),
                  downloadButton('downloadPlot', 'Download Plot')
                ),
                mainPanel(
@@ -52,11 +52,11 @@ ui <- shinyUI(fluidPage(
                                "ANN" = "ANN"
                                   
                )),  selectInput("freq", "please specifiy the data frequency",
-                                c("24" = "24",
-                                  "168" = "168",
-                                  "365" = "365",
-                                  "7866" = "7866"
-                                )),
+                                c("24" = 24,
+                                  "168" = 168,
+                                  "365" = 365,
+                                  "7866" = 7866
+                                ),selected = 24),
                sliderInput(    inputId   = "train",
                                label     ="Training",
                                min       = 1,
@@ -123,13 +123,14 @@ ui <- shinyUI(fluidPage(
                ),
                
                mainPanel(
-                 plotOutput('forecastPlot')
-                 
+                  plotOutput('residualsPlot'),
+                 tableOutput('residualsTables')
+
                )
              )#sidebar layout
     )
     
-    #end of main panel 3 ####################################
+    #end of main panel 5 ####################################
     ##########################################################
     
   )#end tabset panel
