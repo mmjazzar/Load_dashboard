@@ -1,11 +1,13 @@
 library(shiny)
 library(forecast)
 library(tseries)
+library(DT) 
+#source("common.R")
 
-#library(forecast)
 function(input, output, session) {
   # added "session" because updateSelectInput requires it
-  
+
+
   data <- reactive({ 
     req(input$file1) ## ?req #  require that the input is available
     
@@ -25,10 +27,12 @@ function(input, output, session) {
     
     return(df)
   })
-  
-  output$contents <- renderTable({
+  ############################################################
+  output$contents <- renderDataTable({
     data()
-  })
+  }, options = list(lengthMenu = c(10, 30, 50), pageLength = 10,searching=TRUE)
+  
+  )
   
   # I Since you have two inputs I decided to make a scatterplot
     output$MyPlot <- renderPlot({
@@ -58,9 +62,9 @@ function(input, output, session) {
     modeldata <- reactive({ 
 
       # Converting frequecny from character into int.
-      #mydata<-ts(x[,input$ycol],frequency= as.numeric(input$freq))
+      mydata<-ts(data()[,input$ycol],frequency= as.numeric(input$freq))
       
-      mydata<-ts(data()[,input$ycol])
+      #mydata<-ts(data()[,input$ycol])
       #choose between ANN, ARIMA
       if(input$model =="ARIMA"){
         #do ARIMA 
@@ -73,8 +77,21 @@ function(input, output, session) {
         
       } else if (input$model =="ANN") {
         #do ANN
+         results <- nnetar(mydata)
+        
        # results <- nnetar(mydata,frequency= as.numeric(input$freq))
-      }#end if  
+      } else if (input$model == "TBATS"){
+        
+        results <- tbats(mydata)
+      } else if (input$model =="HoltWinters")
+      {
+        results <- HoltWinters(mydata)
+        
+      } else if (input$model == "LR")
+      {
+        results <- tslm(mydata ~ trend)
+        
+      }
       
       
       #  modelSummery <- summary(y)
@@ -83,26 +100,45 @@ function(input, output, session) {
     
     #presenting output###########################################
     output$modelData <- renderPrint({
-  
-        modeldata()  
+    modeldata()
+     })
+    output$modelData2 <- renderTable({
+      mydaya <- ts(data()[,input$ycol])
+      # to be edited 
+   #   accuracy(fitted(modeldata()))
       
-      summary(modeldata())
+      # if ARIMA
+      if(input$model =="ARIMA"){
+        summary(modeldata())
+      }#if TBATS
+      else if (input$model == "TBATS"){
+        accuracy(modeldata()$fitted.values,mydaya)
+      }#if ANN
+      else if (input$model == "ANN"){
+        accuracy(modeldata()$fitted,mydaya)
+        
+      }
       
     })
-    ######################################################
+    
+######################################################
     output$forecastPlot <- renderPlot({
-      x <- modeldata()[, c(input$xcol, input$ycol)]
-      plot(x)
+   
+      if (input$model == "ARIMA" || input$model == "ANN")
+      plot(forecast(modeldata(), h = input$FP))
+      else {
+        plot(forecast(modeldata()))
+        
+      }
       
     })
     
 ############################################################
     ##############Reiduals 
-    output$residualsTables <- renderTable({
-      residuals(modeldata())
-    # accuracy(fit12, mydata)
-    # add accuracy section
-      })
+    output$residualsTables <- renderDataTable({
+    # global(i=1)
+    }, options = list(lengthMenu = c(10, 30, 50), pageLength = 10,searching=TRUE))
+    
     
     output$residualsPlot <- renderPlot({
       plot(ts(data()[,input$ycol]),xlab= input$xcol,ylab=input$ycol)
@@ -111,7 +147,9 @@ function(input, output, session) {
             legend=c("Real Data","fitted Data"))
      
  #    plot(residuals(modeldata()), col="red"))
-      
+     #more plots
+     # plot(density(resid(data12)),main="Residuals Distribution") #A density plot
+
     })
     
     
