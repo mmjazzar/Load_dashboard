@@ -17,7 +17,7 @@ ui <- shinyUI(fluidPage(
               ),
                
                mainPanel(
-                 tableOutput('contents')
+                 dataTableOutput('contents')
                )
              )#sidebar layout
     ),
@@ -49,8 +49,10 @@ ui <- shinyUI(fluidPage(
                 sidebarPanel(
                 selectInput("model", "please specifiy the model",
                              c("ARIMA" = "ARIMA",
-                               "ANN" = "ANN"
-                                  
+                               "ANN" = "ANN",
+                                  "TBATS" = "TBATS",
+                               "HoltWinters" = "HoltWinters",
+                               "Linear regression" = "LR"
                )),  selectInput("freq", "please specifiy the data frequency",
                                 c("24" = 24,
                                   "168" = 168,
@@ -71,14 +73,31 @@ ui <- shinyUI(fluidPage(
                                label     ="Validation",
                                min       = 1,
                                max       = 30, 
-                               value     = 15)
+                               value     = 15),
+               selectInput("FP", "please specifiy the Forecasting period",
+                           c("24" = 24,
+                             "168" = 168,
+                             "365" = 365,
+                             "7866" = 7866
+                           ),selected = 24)
                
                ),
+          
+               
+               
                #main panel of tabpanel 3
                mainPanel( 
+           
+                 
+                 tags$article(
+                textOutput("modelData")
+                 ),
+                 tags$hr(),
                 
-                 textOutput('modelData')
-               )
+                 tableOutput("modelData2")
+                 
+                 
+                 )
              )
     ),
     #end of main panel 3 ####################################
@@ -88,12 +107,11 @@ ui <- shinyUI(fluidPage(
              titlePanel("Forecasting Polt"),
              sidebarLayout(
                sidebarPanel(
-                 
-                 
-               ),
+              ),
                
                mainPanel(
-                 
+                 plotOutput("forecastPlot")
+                
                )
              )#sidebar layout
     ),
@@ -103,6 +121,21 @@ ui <- shinyUI(fluidPage(
              titlePanel("Forecasting Data"),
              sidebarLayout(
                sidebarPanel(
+                 
+                 sliderInput(
+                   "nDaysHist", 
+                   "Number of days of history", 
+                   value = 15,
+                   min = 0, 
+                   max = 365*13
+                 ),
+                 sliderInput(
+                   "nDays", 
+                   "Number of days to forecast", 
+                   value = 15,
+                   min = 1, 
+                   max = 365*5
+                 )
                  
                   ),
                
@@ -123,16 +156,25 @@ ui <- shinyUI(fluidPage(
                ),
                
                mainPanel(
-                  plotOutput('residualsPlot'),
-                 tableOutput('residualsTables')
+                plotOutput('residualsPlot'),
+                tags$hr(),
+                 dataTableOutput('residualsTables')
 
                )
              )#sidebar layout
-    )
-    
+    ),
     #end of main panel 5 ####################################
-    ##########################################################
-    
+    ##################About###############################
+    tabPanel("About",
+             titlePanel("About"),
+             mainPanel(
+               
+               tags$hr()
+               
+               
+             )
+    )
   )#end tabset panel
+  
 )#end fluidpanel
 )
