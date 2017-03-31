@@ -1,5 +1,4 @@
 library(shiny)
-library(datasets)
 
 ui <- shinyUI(fluidPage(
   titlePanel("Load Forecasting Dashboard"),
@@ -21,8 +20,8 @@ ui <- shinyUI(fluidPage(
                )
              )#sidebar layout
     ),
-    ########################################
-    #########################################
+#####################################################################
+#####################################################################
     tabPanel("plot",
              pageWithSidebar(
                headerPanel('Data'),
@@ -32,14 +31,13 @@ ui <- shinyUI(fluidPage(
                  selectInput('xcol', 'X axis', "",selected = 1),
                  selectInput('ycol', 'Y axis', "", selected = 1),
                  downloadButton('downloadPlot', 'Download Plot')
-               ),
-               mainPanel(
-                 plotOutput('MyPlot')
+               ),mainPanel(
+                  dygraphOutput("dygraph")
                )
              )
-    ),# end of tabpanel 2
-    #####################################################################
-    ####################################################################
+),# end of tabpanel 2
+#####################################################################
+####################################################################
     tabPanel("Model",
              pageWithSidebar(
                headerPanel('Model'),
@@ -52,7 +50,8 @@ ui <- shinyUI(fluidPage(
                                "ANN" = "ANN",
                                   "TBATS" = "TBATS",
                                "HoltWinters" = "HoltWinters",
-                               "Linear regression" = "LR"
+                               "STLF" = "STLF",
+                               "HybridModel" = "HybridModel"
                )),  selectInput("freq", "please specifiy the data frequency",
                                 c("24" = 24,
                                   "168" = 168,
@@ -73,98 +72,65 @@ ui <- shinyUI(fluidPage(
                                label     ="Validation",
                                min       = 1,
                                max       = 30, 
-                               value     = 15),
-               selectInput("FP", "please specifiy the Forecasting period",
-                           c("24" = 24,
-                             "168" = 168,
-                             "365" = 365,
-                             "7866" = 7866
-                           ),selected = 24)
+                               value     = 15)
+             
                
                ),
-          
-               
-               
                #main panel of tabpanel 3
-               mainPanel( 
-           
+               mainPanel(
                  
-                 tags$article(
-                textOutput("modelData")
+                tags$article(
+                #textOutput("modelData")
+                verbatimTextOutput("modelData")
                  ),
                  tags$hr(),
-                
                  tableOutput("modelData2")
-                 
-                 
+
                  )
              )
     ),
-    #end of main panel 3 ####################################
-    ##########################################################
+#end of main panel 3 ####################################
+##########################################################
     
     tabPanel("Forecast Plot",
              titlePanel("Forecasting Polt"),
              sidebarLayout(
                sidebarPanel(
+                 selectInput("FP", "please specifiy the Forecasting period",
+                             c("24" = 24,
+                               "168" = 168,
+                               "365" = 365,
+                               "7866" = 7866
+                             ),selected = 24),
+                 downloadButton('forecastData', 'Download Data')
               ),
                
                mainPanel(
-                 plotOutput("forecastPlot")
+                 plotOutput("forecastPlot"),
+                 tags$hr(),
+                 dataTableOutput('forecastTables')
                 
                )
              )#sidebar layout
     ),
-    #end of main panel 4 ####################################
-    ##########################################################
-    tabPanel("Forecasting Data",
-             titlePanel("Forecasting Data"),
-             sidebarLayout(
-               sidebarPanel(
-                 
-                 sliderInput(
-                   "nDaysHist", 
-                   "Number of days of history", 
-                   value = 15,
-                   min = 0, 
-                   max = 365*13
-                 ),
-                 sliderInput(
-                   "nDays", 
-                   "Number of days to forecast", 
-                   value = 15,
-                   min = 1, 
-                   max = 365*5
-                 )
-                 
-                  ),
-               
-               mainPanel(
-                
-               )
-             )#sidebar layout
-    ),
-    
-    #end of main panel 3 ####################################
-    ##########################################################
+#end of main panel 3 ####################################
+##########################################################
     tabPanel("Residuals",
              titlePanel("Residuals"),
              sidebarLayout(
                sidebarPanel(
-                 
-                
+                 tags$p('if you want to download the data'),
+                 downloadButton('downloadRes', 'Download Data')
                ),
-               
                mainPanel(
-                plotOutput('residualsPlot'),
+                 dygraphOutput('residualsPlot'),
                 tags$hr(),
                  dataTableOutput('residualsTables')
-
                )
              )#sidebar layout
     ),
-    #end of main panel 5 ####################################
-    ##################About###############################
+#end of main panel 5 ####################################
+##################About###############################
     tabPanel("About",
              titlePanel("About"),
              mainPanel(
