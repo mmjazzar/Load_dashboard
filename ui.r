@@ -7,13 +7,20 @@ ui <- shinyUI(fluidPage(
              titlePanel("Uploading Files"),
              sidebarLayout(
                sidebarPanel(
-                 fileInput('file1', 'Choose CSV File',
-                    accept=c('text/csv', 
-                      'text/comma-separated-values,text/plain','.csv')),
                  
-                radioButtons('sep', 'Separator',c(Comma=','
-                    ,Semicolon=';',Tab='\t'),',')
-              ),
+                 tags$form(
+                   fileInput('file1', 'Choose CSV File',
+                             accept=c('text/csv', 
+                                      'text/comma-separated-values,text/plain','.csv')),
+                   
+                   radioButtons('sep', 'Separator',c(Comma=','
+                                                     ,Semicolon=';',Tab='\t'),','),
+                   actionButton("upload", "Upload")
+                 )
+                 ) 
+                 
+                 
+           ,
                
                mainPanel(
                  dataTableOutput('contents')
@@ -22,16 +29,18 @@ ui <- shinyUI(fluidPage(
     ),
 #####################################################################
 #####################################################################
-    tabPanel("plot",
+    tabPanel("Plot",
              pageWithSidebar(
                headerPanel('Data'),
                sidebarPanel(
                  
+                 tags$form(
                  # "Empty inputs" - they will be updated after the data is uploaded
                  selectInput('xcol', 'X axis', "",selected = 1),
                  selectInput('ycol', 'Y axis', "", selected = 1),
-                 downloadButton('downloadPlot', 'Download Plot')
-               ),mainPanel(
+                 downloadButton('downloadPlot', 'Download Plot'),
+                 actionButton("drawPlot","Plot")
+               )),mainPanel(
                   dygraphOutput("dygraph")
                )
              )
@@ -45,37 +54,38 @@ ui <- shinyUI(fluidPage(
                # 2. apply a specific model.
                # 3. divide the data.
                 sidebarPanel(
-                selectInput("model", "please specifiy the model",
-                             c("ARIMA" = "ARIMA",
-                               "ANN" = "ANN",
-                                  "TBATS" = "TBATS",
+                  tags$form(
+                   selectInput("model", "please specifiy the model",
+                               c("ANN" = "ANN",
+                               "ARIMA" = "ARIMA",
                                "HoltWinters" = "HoltWinters",
+                               "HybridModel" = "HybridModel",
                                "STLF" = "STLF",
-                               "HybridModel" = "HybridModel"
-               )),  selectInput("freq", "please specifiy the data frequency",
+                               "TBATS" = "TBATS"
+                    )),
+                   selectInput("freq", "please specifiy the data frequency",
                                 c("24" = 24,
                                   "168" = 168,
                                   "365" = 365,
                                   "7866" = 7866
-                                ),selected = 24),
-               sliderInput(    inputId   = "train",
+                   ),selected = 24),
+                   sliderInput(inputId   = "train",
                                label     ="Training",
                                min       = 1,
                                max       = 70, 
                                value     = 70),
-               sliderInput(    inputId   = "test",
+                   sliderInput(inputId   = "test",
                                label     = "Testing",
                                min       = 1,  
                                max       = 30,  
                                value     = 15),
-               sliderInput(    inputId   = "Validte",
+                   sliderInput(inputId   = "Validte",
                                label     ="Validation",
                                min       = 1,
                                max       = 30, 
-                               value     = 15)
-             
-               
-               ),
+                               value     = 15),
+                   actionButton("applymodel","Apply")
+               )),
                #main panel of tabpanel 3
                mainPanel(
                  
