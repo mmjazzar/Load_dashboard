@@ -134,9 +134,9 @@ df
     { 
     #Converting frequecny from character into int.
     #mydata<-ts(data()[,input$ycol])
-      input$applymodel
-      isolate({
+      
       mydata<-ts(data()[,input$ycol],frequency= as.numeric(input$freq))
+      
       #choose between models
       if(input$model =="ARIMA")
       {
@@ -169,25 +169,31 @@ df
         results <- hybridModel(mydata)
       }
       
-      } )
+    
     #adding regressors
       
-   
-        return(results)
+      input$applymodel
+      isolate(        return(results))
+
     })#end function
     
 #########################################################################
 #presenting output
     output$modelData <- renderPrint(
      {
-       modeldata()
+       input$applymodel
+       isolate(
+        modeldata()
+       )
      })
 
 #presenting summary    
     output$modelData2 <- renderTable(
      {
+       input$applymodel
+       isolate({
        mydaya <- ts(data()[,input$ycol])
-
+       
 #comparing models
 # if ARIMA
       if(input$model =="ARIMA")
@@ -214,91 +220,128 @@ df
         {
           accuracy(modeldata()$fitted,mydaya)
         }
-       
+       })
       })#end function
     
 ###############################################################
 # plotting forecasting period.##############################
-  output$forecastPlot <- renderPlot({
-   
-    if (input$model == "ARIMA" || input$model == "ANN")
+  output$forecastPlot <- renderPlot(
+    {
+    input$forecastAction
+    isolate(    {
+      
+      if (input$model == "ARIMA" || input$model == "ANN")
       {
         autoplot(forecast(modeldata(), h = input$FP))
       }
-    else if (input$model == "TBATS")
+      else if (input$model == "TBATS")
       {
         p <- predict(modeldata())
         autoplot(p)
       }
-    else if (input$model == "HybridModel")
+      else if (input$model == "HybridModel")
       {
         autoplot(forecast(modeldata(), h = as.numeric(input$FP)))
       }
-    else if(input$model =="HoltWinters")
+      else if(input$model =="HoltWinters")
       {
         y <- modeldata()
         p <- predict(y, input$FP)
-  
+        
         X <- cbind(  fitted = y$fitted[,1] , mean = p)
         df <- cbind(y$x, X)
         colnames(df) <- c("Data", "Fitted", "Forecasting")
         autoplot(df)
       }
-    else if(input$model == "STLF")
+      else if(input$model == "STLF")
       {
         autoplot(modeldata())
       }
       
-  })#end function
+    })
+
+    }
+  )#end function
 ############################################################
 ######## present forecast data
 
     output$forecastTables <- renderDataTable({
-    
-      if (input$model == "ARIMA")
+      input$forecastAction
+      isolate({
+        if (input$model == "ARIMA")
         {
           p <- forecast(modeldata(),h = input$FP)
           a <- cbind(p$mean,p$lower,p$upper)
           colnames(a) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
-      else if (input$model == "ANN")
+        else if (input$model == "ANN")
         {
           p <- forecast(modeldata(),h = input$FP)
           a <- cbind( seq(1:length(p$mean)),p$mean)
           colnames(a) <- c("Point Forecast","mean")
           
         }
-      else if (input$model == "TBATS")
+        else if (input$model == "TBATS")
         {
           p <- (predict(modeldata()))
           a <- cbind(p$mean,p$lower,p$upper)
           colnames(a) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
-      else if(input$model == "STLF" || input$model == "HoltWinters" || input$model == "HybridModel")
+        else if(input$model == "STLF" || input$model == "HoltWinters" || input$model == "HybridModel")
         {
           p <- forecast(modeldata(),h = input$FP)
           a <- cbind( seq(1:length(p$mean)),p$mean)
           colnames(a) <- c("Point Forecast","mean")
           
         }
-      # format the data
-      a <- formatC(a)
+        # format the data
+        a <- formatC(a)  
+      })
+      
 #  colnames(a) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
     }, options = list(lengthMenu = c(10, 30, 50), pageLength = 10,searching=TRUE))
 
 ############################################################
 # Download forecasted data and figure as pdf
-  output$downloadfor <- downloadHandler(
-    a <-  data.frame( residuals(modeldata())),
-  
-    filename = function() {paste("a",'.csv',sep='')},
-    content = function(file)
-      {
-        write.csv(a,file)
+    output$forecastData <- downloadHandler(
+      filename = function() {
+        
+        paste("forecasting-",input$model,'.csv',sep='')},
+      content = function(file){
+        
+        if (input$model == "ARIMA")
+        {
+          p <- forecast(modeldata(),h = input$FP)
+          dataFor <- data.frame(p$mean,p$lower,p$upper)
+          colnames(dataFor) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
+        }
+        else if (input$model == "ANN")
+        {
+          p <- forecast(modeldata(),h = input$FP)
+          dataFor <- data.frame(p$mean)
+          colnames(dataFor) <- c("Forecasting")
+          
+        }
+        else if (input$model == "TBATS")
+        {
+          p <- (predict(modeldata()))
+          dataFor <- data.frame(p$mean,p$lower,p$upper)
+          colnames(dataFor) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
+        }
+        else if(input$model == "STLF" || input$model == "HoltWinters" || input$model == "HybridModel")
+        {
+          p <- forecast(modeldata(),h = input$FP)
+          dataFor <- data.frame( p$mean)
+          colnames(dataFor) <- c("Forecasting")
+          
+        }
+        # format the data
+       # dataFor <- formatC(dataFor)  
+        write.csv(dataFor,file)
       }
-  
-  )#end function
-
+      
+    )#end function
+    
 
     
 ############################################################
@@ -306,11 +349,7 @@ df
 
   output$residualsTables <- renderDataTable(
     {
-  
 
-      # removing NULL values, adjusting data format
-      
-      
       if(input$model == "HoltWinters" || input$model == "HybridModel")
       {
         a <-  cbind( seq(1:length(residuals(modeldata()))),residuals(modeldata()))
@@ -322,7 +361,7 @@ df
         a <-  cbind( seq(1:nrow(data())),residuals(modeldata()))
         colnames(a) <- c("Sequence","Residuals")
       }
-      
+      # removing NULL values, adjusting data format
       a <- na.omit(a)
       a <- formatC(a)
 
@@ -334,22 +373,24 @@ df
 ########################################################### Residuals plot
 # plot  residuals figure.
 # adjusting time series by date.
-    output$residualsPlot <- renderDygraph(
+    output$residualsPlot <- renderPlot(
       {
-
-        x <- xts(x = residuals(modeldata()), order.by = as.Date(data()[,input$xcol] , format='%m/%d/%Y'))
-  
-        dygraph(x)
+        autoplot(residuals(modeldata()))
       }
     )
 ############################################################
 # Download Residuals data
   output$downloadRes <- downloadHandler(
-    a <-  data.frame( residuals(modeldata())),
-    
-    filename = function() {paste("a",'.csv',sep='')},
+    filename = function() {
+
+      paste("res-",input$model,'.csv',sep='')},
     content = function(file){
-    write.csv(a,file)
+      
+      DataRes <-  data.frame(residuals(modeldata()))
+      # removing NULL values, adjusting data format
+      DataRes <- na.omit(DataRes)
+      colnames(DataRes) <- c("Residuals")
+      write.csv(DataRes,file)
     }
     
     )#end function
