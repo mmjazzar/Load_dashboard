@@ -69,21 +69,10 @@ ui <- shinyUI(fluidPage(
                                   "365" = 365,
                                   "7866" = 7866
                    ),selected = 24),
-                   sliderInput(inputId   = "train",
-                               label     ="Training",
-                               min       = 1,
-                               max       = 70, 
-                               value     = 70),
-                   sliderInput(inputId   = "test",
-                               label     = "Testing",
-                               min       = 1,  
-                               max       = 30,  
-                               value     = 15),
-                   sliderInput(inputId   = "Validte",
-                               label     ="Validation",
-                               min       = 1,
-                               max       = 30, 
-                               value     = 15),
+                   selectizeInput(
+                     'xreg', 'please select regressor',
+                     choices = state.name, multiple = TRUE
+                   ),
                    actionButton("applymodel","Apply")
                )),
                #main panel of tabpanel 3
@@ -106,14 +95,16 @@ ui <- shinyUI(fluidPage(
              titlePanel("Forecasting Polt"),
              sidebarLayout(
                sidebarPanel(
-                 selectInput("FP", "please specifiy the Forecasting period",
+                 tags$form(
+                  selectInput("FP", "please specifiy the Forecasting period",
                              c("24" = 24,
                                "168" = 168,
                                "365" = 365,
                                "7866" = 7866
                              ),selected = 24),
-                 downloadButton('forecastData', 'Download Data')
-              ),
+                  downloadButton('forecastData', 'Download Data'),
+                  actionButton("forecastAction","Plot")
+              )),
                
                mainPanel(
                  plotOutput("forecastPlot"),
@@ -131,9 +122,9 @@ ui <- shinyUI(fluidPage(
                sidebarPanel(
                  tags$p('if you want to download the data'),
                  downloadButton('downloadRes', 'Download Data')
-               ),
+                 ),
                mainPanel(
-                 dygraphOutput('residualsPlot'),
+                 plotOutput('residualsPlot'),
                 tags$hr(),
                  dataTableOutput('residualsTables')
                )
