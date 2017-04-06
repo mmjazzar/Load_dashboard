@@ -37,6 +37,10 @@ function(input, output, session) {
                       choices = names(df), selected = names(df)[1])
     updateSelectInput(session, inputId = 'ycol', label = 'Y Variable',
                       choices = names(df), selected = names(df)[2])
+    updateSelectInput(session, inputId = 'xreg', label = 'xreg',
+                      choices = names(df), selected = names(df)[3])
+    
+    
     
     return(df)
     
@@ -132,23 +136,23 @@ df
 ##applying model
   modeldata <- reactive(
     { 
-    #Converting frequecny from character into int.
-    #mydata<-ts(data()[,input$ycol])
-      
-      mydata<-ts(data()[,input$ycol],frequency= as.numeric(input$freq))
+      #Converting frequecny from character into int.
+      #adding regressors
+      xreg <- (data()[ ,input$xreg])
+      mydata<-ts(data()[ ,input$ycol],frequency= as.numeric(input$freq))
       
       #choose between models
       if(input$model =="ARIMA")
       {
-        results <- auto.arima(mydata)
-        #results <- auto.arima(mydata, frequency= input$freq)
+        #results <- auto.arima(mydata)
+        results <- auto.arima(mydata,xreg = xreg ,frequency= input$freq)
       }# end ARIMA 
       
       # 2. ANN model
       else if (input$model =="ANN") 
       {
-        results <- nnetar(mydata)
-        # results <- nnetar(mydata,frequency= as.numeric(input$freq))
+        #results <- nnetar(mydata)
+         results <- nnetar(mydata,xreg = xreg,frequency= as.numeric(input$freq))
       }
       # TBATS model, note TBATS do not accept regressors
       else if (input$model == "TBATS")
@@ -166,11 +170,12 @@ df
       }
       else if (input$model == "HybridModel")
       {
-        results <- hybridModel(mydata)
+        results <- hybridModel(mydata,
+                               models = "aenst",
+                               a.args = list(xreg = xreg),
+                               n.args = list(xreg = xreg),
+                               s.args = list(xreg = xreg, method = "arima"))
       }
-      
-    
-    #adding regressors
       
       input$applymodel
       isolate(        return(results))
@@ -184,7 +189,7 @@ df
        input$applymodel
        isolate(
         modeldata()
-       )
+        )
      })
 
 #presenting summary    
@@ -227,12 +232,12 @@ df
 # plotting forecasting period.##############################
   output$forecastPlot <- renderPlot(
     {
-    input$forecastAction
+      xreg <- data.frame(data()[ ,input$xreg])
+      input$forecastAction
     isolate(    {
-      
       if (input$model == "ARIMA" || input$model == "ANN")
       {
-        autoplot(forecast(modeldata(), h = input$FP))
+        autoplot(forecast(modeldata(),xreg = xreg, h = input$FP))
       }
       else if (input$model == "TBATS")
       {
@@ -241,7 +246,8 @@ df
       }
       else if (input$model == "HybridModel")
       {
-        autoplot(forecast(modeldata(), h = as.numeric(input$FP)))
+      
+        autoplot(forecast(modeldata(),xreg = xreg, h = as.numeric(input$FP)))
       }
       else if(input$model =="HoltWinters")
       {
@@ -266,17 +272,19 @@ df
 ######## present forecast data
 
     output$forecastTables <- renderDataTable({
+      xreg <- data.frame(data()[ ,input$xreg])
       input$forecastAction
       isolate({
+        
         if (input$model == "ARIMA")
         {
-          p <- forecast(modeldata(),h = input$FP)
+          p <- forecast(modeldata(), xreg = xreg, h = input$FP)
           a <- cbind(p$mean,p$lower,p$upper)
           colnames(a) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
         else if (input$model == "ANN")
         {
-          p <- forecast(modeldata(),h = input$FP)
+          p <- forecast(modeldata(), xreg = xreg, h = input$FP)
           a <- cbind( seq(1:length(p$mean)),p$mean)
           colnames(a) <- c("Point Forecast","mean")
           
@@ -287,12 +295,23 @@ df
           a <- cbind(p$mean,p$lower,p$upper)
           colnames(a) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
-        else if(input$model == "STLF" || input$model == "HoltWinters" || input$model == "HybridModel")
+        else if(input$model == "STLF" || input$model == "HoltWinters")
         {
           p <- forecast(modeldata(),h = input$FP)
           a <- cbind( seq(1:length(p$mean)),p$mean)
           colnames(a) <- c("Point Forecast","mean")
           
+        }
+        else if (input$model ==  "HybridModel")
+        {
+          
+          
+          p <- forecast(modeldata(), xreg = xreg, h = as.numeric(input$FP)
+                        , FUN = hybridModel)
+          a <- cbind( seq(1:length(p$mean)),p$mean)
+          colnames(a) <- c("Point Forecast","mean")
+          
+      
         }
         # format the data
         a <- formatC(a)  
@@ -308,16 +327,18 @@ df
         
         paste("forecasting-",input$model,'.csv',sep='')},
       content = function(file){
+        xreg <- data.frame(data()[ ,input$xreg])
+        
         
         if (input$model == "ARIMA")
         {
-          p <- forecast(modeldata(),h = input$FP)
+          p <- forecast(modeldata(),xreg= xreg,h = input$FP)
           dataFor <- data.frame(p$mean,p$lower,p$upper)
           colnames(dataFor) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
         else if (input$model == "ANN")
         {
-          p <- forecast(modeldata(),h = input$FP)
+          p <- forecast(modeldata(),xreg = xreg,h = input$FP)
           dataFor <- data.frame(p$mean)
           colnames(dataFor) <- c("Forecasting")
           
@@ -328,12 +349,19 @@ df
           dataFor <- data.frame(p$mean,p$lower,p$upper)
           colnames(dataFor) <- c("Point Forecast","LO 95","HI 95","Lo 80","Hi 80")
         }
-        else if(input$model == "STLF" || input$model == "HoltWinters" || input$model == "HybridModel")
+        else if(input$model == "STLF" || input$model == "HoltWinters")
         {
           p <- forecast(modeldata(),h = input$FP)
           dataFor <- data.frame( p$mean)
           colnames(dataFor) <- c("Forecasting")
           
+        }
+        else if (input$model == "HybridModel")
+        {
+          p <- forecast(modeldata(), xreg = xreg, h = as.numeric(input$FP)
+                        , FUN = hybridModel)
+          dataFor <- data.frame( p$mean)
+          colnames(dataFor) <- c("Forecasting")
         }
         # format the data
        # dataFor <- formatC(dataFor)  
